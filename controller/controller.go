@@ -12,8 +12,8 @@ type Controller interface {
 }
 
 type Route struct {
-	Pattern string
 	Method  string
+	Pattern string
 	Handler any // http.Handler compatible
 }
 
