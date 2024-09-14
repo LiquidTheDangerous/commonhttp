@@ -18,9 +18,9 @@ func (h *HelloController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, _ = io.WriteString(w, "Hello, "+name+"!\n")
 }
 
-func (h *HelloController) Routes() []controller.Route {
+func (h *HelloController) Routes() controller.Routes {
 	// curl --request GET --url localhost:8080/hello?name=YourName
-	return []controller.Route{{"GET", "/hello", h, nil}}
+	return controller.Routes{controller.Route("GET", "/hello", h)}
 }
 
 func main() {

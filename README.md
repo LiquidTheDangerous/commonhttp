@@ -11,6 +11,7 @@ Here’s a simple example of how to register controllers:
 package main
 
 import (
+	"io"
 	"net/http"
 
 	"github.com/LiquidTheDangerous/commonhttp/controller"
@@ -19,10 +20,10 @@ import (
 type ExampleController struct {
 }
 
-func (e *ExampleController) Routes() []controller.Route {
-	return []controller.Route{{"GET", "/hello", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello"))
-	}}}
+func (e *ExampleController) Routes() controller.Routes {
+	return []controller.RouteDef{controller.Route("GET", "/hello", func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "Hello, world")
+	})}
 }
 
 func main() {
@@ -45,8 +46,8 @@ The handler for a Route can be a function or an object implementing http.Handler
 var handler http.Handler
 var f func(w http.ResponseWriter, r *http.Request)
 ...
-func (c *MyController) Routes() []controller.Route {
-    return []controller.Route{{"GET", "/handler", handler}, {"GET", "/function", f}}
+func (c *MyController) Routes() controller.Routes {
+    return controller.Routes{controller.Route("GET", "/handler", handler), controller.Route("GET", "/function", f)}
 }
 ...
 ```

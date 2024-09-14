@@ -8,10 +8,10 @@ import (
 type ControllerWithFunction struct {
 }
 
-func (s *ControllerWithFunction) Routes() []Route {
-	return []Route{{"GET", "", func(w http.ResponseWriter, r *http.Request) {
+func (s *ControllerWithFunction) Routes() Routes {
+	return []RouteDef{Route("GET", "", func(w http.ResponseWriter, r *http.Request) {
 
-	}, nil}}
+	})}
 }
 
 type MockMux struct {

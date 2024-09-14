@@ -19,12 +19,12 @@ func (e *EchoController) ServeEcho(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (e *EchoController) Routes() []controller.Route {
+func (e *EchoController) Routes() controller.Routes {
 	// curl --request GET --url localhost:8080 --json '{"payload":"Hello, world!"}'
-	return []controller.Route{{"GET", "/", e.ServeEcho, nil}}
+	return controller.Routes{controller.Route("GET", "/", e.ServeEcho)}
 }
 
-func RegisterGorillaMux(m any, handler http.Handler, route *controller.Route) error {
+func RegisterGorillaMux(m any, handler http.Handler, route *controller.RouteDef) error {
 	r, ok := m.(*mux.Router)
 	if !ok {
 		return fmt.Errorf("route %T is not a mux.Router", m)

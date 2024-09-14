@@ -13,11 +13,13 @@ type Registrar interface {
 	RegisterController(mux any, c Controller) error
 }
 
+type Routes []RouteDef
+
 type Controller interface {
-	Routes() []Route
+	Routes() Routes
 }
 
-type Route struct {
+type RouteDef struct {
 	Method           string
 	Pattern          string
 	Handler          any              // Provide WithHandlerMapperFunc to map this value to http.Handler. By default, RegisterController function tries to cast to http.Handler
@@ -26,16 +28,16 @@ type Route struct {
 
 // HandlerRegistrar provides strategy for registering handler with route pattern.
 type HandlerRegistrar interface {
-	RegisterHandler(mux any, handler http.Handler, route *Route) error
+	RegisterHandler(mux any, handler http.Handler, route *RouteDef) error
 }
 
-func (r HandlerRegistrarFunc) RegisterHandler(mux any, handler http.Handler, route *Route) error {
+func (r HandlerRegistrarFunc) RegisterHandler(mux any, handler http.Handler, route *RouteDef) error {
 	return r(mux, handler, route)
 }
 
-type HandlerRegistrarFunc func(mux any, handler http.Handler, route *Route) error
+type HandlerRegistrarFunc func(mux any, handler http.Handler, route *RouteDef) error
 
-// HandlerMapper provides strategy for mapping Route.Handler value to http.Handler interface
+// HandlerMapper provides strategy for mapping RouteDef.Handler value to http.Handler interface
 type HandlerMapper interface {
 	MapHandler(handler any) (http.Handler, error)
 }
@@ -60,6 +62,14 @@ type RegisterControllerOption struct {
 	Mapper         HandlerMapper
 	RouteRegistrar HandlerRegistrar
 	Decorators     []HandlerDecorator
+}
+
+func Route(method string, pattern string, handler any) RouteDef {
+	return RouteDef{
+		Method:  method,
+		Pattern: pattern,
+		Handler: handler,
+	}
 }
 
 func WithHandlerMapperFunc(mapper HandlerMapperFunc) OptionModifier {
@@ -163,9 +173,9 @@ func decorate(handler http.Handler, decorators []HandlerDecorator) http.Handler 
 }
 
 // registerHttpMux provides default implementation for HandlerRegistrar.
-// its register http.Handler with pattern '<Route.Method> <Route.Pattern>'.
+// its register http.Handler with pattern '<RouteDef.Method> <RouteDef.Pattern>'.
 // works only with http.ServeMux like.
-func registerHttpMux(mux any, handler http.Handler, route *Route) error {
+func registerHttpMux(mux any, handler http.Handler, route *RouteDef) error {
 	type IMux interface {
 		Handle(pattern string, handler http.Handler)
 	}
