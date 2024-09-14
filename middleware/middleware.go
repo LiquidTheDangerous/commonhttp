@@ -7,6 +7,12 @@ type Middleware interface {
 	Handle(w http.ResponseWriter, r *http.Request, next http.Handler)
 }
 
+type MiddlewareFunc func(w http.ResponseWriter, r *http.Request, next http.Handler)
+
+func (f MiddlewareFunc) Handle(w http.ResponseWriter, r *http.Request, next http.Handler) {
+	f(w, r, next)
+}
+
 // middlewareChain Redirects ServeHTTP call to Middleware.Handle method with nextHandler.
 // Given middleware should attach additional logic and call ServeHTTP method on provided nextHandler.
 // middlewareChain implements http.Handler, so next middleware can also be middlewareChain.
