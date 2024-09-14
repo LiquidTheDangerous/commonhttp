@@ -21,7 +21,7 @@ func (e *EchoController) ServeEcho(w http.ResponseWriter, r *http.Request) {
 
 func (e *EchoController) Routes() []controller.Route {
 	// curl --request GET --url localhost:8080 --json '{"payload":"Hello, world!"}'
-	return []controller.Route{{"GET", "/", e.ServeEcho}}
+	return []controller.Route{{"GET", "/", e.ServeEcho, nil}}
 }
 
 func RegisterGorillaMux(m any, handler http.Handler, route *controller.Route) error {

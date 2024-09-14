@@ -20,7 +20,7 @@ func (h *HelloController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *HelloController) Routes() []controller.Route {
 	// curl --request GET --url localhost:8080/hello?name=YourName
-	return []controller.Route{{"GET", "/hello", h}}
+	return []controller.Route{{"GET", "/hello", h, nil}}
 }
 
 func main() {
