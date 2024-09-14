@@ -110,6 +110,12 @@ func NewDefaultControllerRegistrar(options ...OptionModifier) Registrar {
 	for _, option := range options {
 		option.Modify(&r.RegisterControllerOption)
 	}
+	if r.Mapper == nil {
+		r.Mapper = HandlerMapperFunc(mapHandler)
+	}
+	if r.RouteRegistrar == nil {
+		r.RouteRegistrar = HandlerRegistrarFunc(registerHttpMux)
+	}
 	return r
 }
 

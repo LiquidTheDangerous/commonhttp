@@ -9,9 +9,9 @@ type ControllerWithFunction struct {
 }
 
 func (s *ControllerWithFunction) Routes() []Route {
-	return []Route{{"/api/function", "GET", func(w http.ResponseWriter, r *http.Request) {
+	return []Route{{"GET", "", func(w http.ResponseWriter, r *http.Request) {
 
-	}}}
+	}, nil}}
 }
 
 type MockMux struct {
