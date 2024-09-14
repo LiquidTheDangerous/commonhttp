@@ -35,7 +35,7 @@ func RegisterGorillaMux(m any, handler http.Handler, route *controller.Route) er
 
 func main() {
 	m := mux.NewRouter()
-	controller.MustRegisterController(m, &EchoController{}, controller.WithRouteRegistrarFunc(RegisterGorillaMux))
+	controller.MustRegisterController(m, &EchoController{}, controller.WithHandlerRegistrarFunc(RegisterGorillaMux))
 	if err := http.ListenAndServe(":8080", m); err != nil {
 		panic(err)
 	}

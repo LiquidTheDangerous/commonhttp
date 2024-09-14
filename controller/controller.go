@@ -29,9 +29,9 @@ type HandlerMapper interface {
 
 type HandlerMapperFunc func(handler any) (http.Handler, error)
 
-type RouteRegistrarFunc func(mux any, handler http.Handler, route *Route) error
+type HandlerRegistrarFunc func(mux any, handler http.Handler, route *Route) error
 
-func (r RouteRegistrarFunc) RegisterHandler(mux any, handler http.Handler, route *Route) error {
+func (r HandlerRegistrarFunc) RegisterHandler(mux any, handler http.Handler, route *Route) error {
 	return r(mux, handler, route)
 }
 
@@ -50,7 +50,7 @@ func WithHandlerMapperFunc(mapper HandlerMapperFunc) OptionModifier {
 	})
 }
 
-func WithRouteRegistrarFunc(registrar RouteRegistrarFunc) OptionModifier {
+func WithHandlerRegistrarFunc(registrar HandlerRegistrarFunc) OptionModifier {
 	return OptionModifierFunc(func(option *RegisterControllerOption) {
 		option.Registrar = registrar
 	})
@@ -82,7 +82,7 @@ func RegisterController(mux any, c Controller, options ...OptionModifier) error 
 		option.Mapper = HandlerMapperFunc(mapHandler)
 	}
 	if option.Registrar == nil {
-		option.Registrar = RouteRegistrarFunc(registerHttpMux)
+		option.Registrar = HandlerRegistrarFunc(registerHttpMux)
 	}
 	return registerController(mux, option.Mapper, option.Registrar, c)
 }
