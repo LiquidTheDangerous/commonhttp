@@ -134,8 +134,8 @@ func registerController(mux any, mapper HandlerMapper, routeRegistrar HandlerReg
 }
 
 func decorate(handler http.Handler, decorators []HandlerDecorator) http.Handler {
-	for _, decorator := range decorators {
-		handler = decorator.Decorate(handler)
+	for i := len(decorators); i >= 0; i-- {
+		handler = decorators[i].Decorate(handler)
 	}
 	return handler
 }
