@@ -103,15 +103,17 @@ func registerController(mux any, mapper HandlerMapper, routeRegistrar HandlerReg
 }
 
 // registerHttpMux provides default implementation for HandlerRegistrar.
+// its register http.Handler with pattern '<Route.Method> <Route.Pattern>'.
+// works only with http.ServeMux like.
 func registerHttpMux(mux any, handler http.Handler, route *Route) error {
-	type Imux interface {
+	type IMux interface {
 		Handle(pattern string, handler http.Handler)
 	}
-	if m, ok := mux.(Imux); ok {
+	if m, ok := mux.(IMux); ok {
 		m.Handle(fmt.Sprintf("%s %s", route.Method, route.Pattern), handler)
 		return nil
 	}
-	return fmt.Errorf("http.ServeMux expected, got %T", mux)
+	return fmt.Errorf("http.ServeMux like expected, got %T", mux)
 }
 
 // mapHandler provides default implementation for HandlerMapper.
