@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+
+	"github.com/LiquidTheDangerous/commonhttp/middleware"
 )
 
 type Controller interface {
@@ -22,6 +24,12 @@ type HandlerRegistrar interface {
 	RegisterHandler(mux any, handler http.Handler, route *Route) error
 }
 
+func (r HandlerRegistrarFunc) RegisterHandler(mux any, handler http.Handler, route *Route) error {
+	return r(mux, handler, route)
+}
+
+type HandlerRegistrarFunc func(mux any, handler http.Handler, route *Route) error
+
 // HandlerMapper provides strategy for mapping Route.Handler value to http.Handler interface
 type HandlerMapper interface {
 	MapHandler(handler any) (http.Handler, error)
@@ -29,19 +37,24 @@ type HandlerMapper interface {
 
 type HandlerMapperFunc func(handler any) (http.Handler, error)
 
-type HandlerRegistrarFunc func(mux any, handler http.Handler, route *Route) error
-
-func (r HandlerRegistrarFunc) RegisterHandler(mux any, handler http.Handler, route *Route) error {
-	return r(mux, handler, route)
-}
-
 func (m HandlerMapperFunc) MapHandler(handler any) (http.Handler, error) {
 	return m(handler)
 }
 
+type HandlerDecorator interface {
+	Decorate(h http.Handler) http.Handler
+}
+
+type HandlerDecoratorFunc func(handler http.Handler) http.Handler
+
+func (m HandlerDecoratorFunc) Decorate(h http.Handler) http.Handler {
+	return m(h)
+}
+
 type RegisterControllerOption struct {
-	Mapper    HandlerMapper
-	Registrar HandlerRegistrar
+	Mapper     HandlerMapper
+	Registrar  HandlerRegistrar
+	Decorators []HandlerDecorator
 }
 
 func WithHandlerMapperFunc(mapper HandlerMapperFunc) OptionModifier {
@@ -53,6 +66,21 @@ func WithHandlerMapperFunc(mapper HandlerMapperFunc) OptionModifier {
 func WithHandlerRegistrarFunc(registrar HandlerRegistrarFunc) OptionModifier {
 	return OptionModifierFunc(func(option *RegisterControllerOption) {
 		option.Registrar = registrar
+	})
+}
+
+func WithHandlerDecoratorFunc(decorator HandlerDecoratorFunc) OptionModifier {
+	return OptionModifierFunc(func(option *RegisterControllerOption) {
+		option.Decorators = append(option.Decorators, decorator)
+	})
+}
+
+func WithMiddlewares(m ...middleware.Middleware) OptionModifier {
+	return OptionModifierFunc(func(option *RegisterControllerOption) {
+		decorator := HandlerDecoratorFunc(func(handler http.Handler) http.Handler {
+			return middleware.Apply(handler)
+		})
+		option.Decorators = append(option.Decorators, decorator)
 	})
 }
 
@@ -84,15 +112,18 @@ func RegisterController(mux any, c Controller, options ...OptionModifier) error 
 	if option.Registrar == nil {
 		option.Registrar = HandlerRegistrarFunc(registerHttpMux)
 	}
-	return registerController(mux, option.Mapper, option.Registrar, c)
+	return registerController(mux, option.Mapper, option.Registrar, option.Decorators, c)
 }
 
-func registerController(mux any, mapper HandlerMapper, routeRegistrar HandlerRegistrar, c Controller) error {
+func registerController(mux any, mapper HandlerMapper, routeRegistrar HandlerRegistrar, decorators []HandlerDecorator, c Controller) error {
 	routes := c.Routes()
 	for _, route := range routes {
 		handler, err := mapper.MapHandler(route.Handler)
 		if err != nil {
 			return err
+		}
+		if decorators != nil && len(decorators) > 0 {
+			handler = decorate(handler, decorators)
 		}
 		err = routeRegistrar.RegisterHandler(mux, handler, &route)
 		if err != nil {
@@ -100,6 +131,13 @@ func registerController(mux any, mapper HandlerMapper, routeRegistrar HandlerReg
 		}
 	}
 	return nil
+}
+
+func decorate(handler http.Handler, decorators []HandlerDecorator) http.Handler {
+	for _, decorator := range decorators {
+		handler = decorator.Decorate(handler)
+	}
+	return handler
 }
 
 // registerHttpMux provides default implementation for HandlerRegistrar.
