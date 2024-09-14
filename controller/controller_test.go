@@ -9,7 +9,7 @@ type ControllerWithFunction struct {
 }
 
 func (s *ControllerWithFunction) Routes() Routes {
-	return []RouteDef{Route("GET", "", func(w http.ResponseWriter, r *http.Request) {
+	return []RouteDef{Route("GET", "/api/function", func(w http.ResponseWriter, r *http.Request) {
 
 	})}
 }
