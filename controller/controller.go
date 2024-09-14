@@ -9,14 +9,19 @@ import (
 	"github.com/LiquidTheDangerous/commonhttp/middleware"
 )
 
+type Registrar interface {
+	RegisterController(mux any, c Controller) error
+}
+
 type Controller interface {
 	Routes() []Route
 }
 
 type Route struct {
-	Method  string
-	Pattern string
-	Handler any // http.Handler compatible
+	Method           string
+	Pattern          string
+	Handler          any              // Provide WithHandlerMapperFunc to map this value to http.Handler. By default, RegisterController function tries to cast to http.Handler
+	HandlerRegistrar HandlerRegistrar // route can provide registrar behaviour. If present, WithHandlerRegistrarFunc Option will be not applied
 }
 
 // HandlerRegistrar provides strategy for registering handler with route pattern.
@@ -52,9 +57,9 @@ func (m HandlerDecoratorFunc) Decorate(h http.Handler) http.Handler {
 }
 
 type RegisterControllerOption struct {
-	Mapper     HandlerMapper
-	Registrar  HandlerRegistrar
-	Decorators []HandlerDecorator
+	Mapper         HandlerMapper
+	RouteRegistrar HandlerRegistrar
+	Decorators     []HandlerDecorator
 }
 
 func WithHandlerMapperFunc(mapper HandlerMapperFunc) OptionModifier {
@@ -65,7 +70,7 @@ func WithHandlerMapperFunc(mapper HandlerMapperFunc) OptionModifier {
 
 func WithHandlerRegistrarFunc(registrar HandlerRegistrarFunc) OptionModifier {
 	return OptionModifierFunc(func(option *RegisterControllerOption) {
-		option.Registrar = registrar
+		option.RouteRegistrar = registrar
 	})
 }
 
@@ -94,6 +99,45 @@ func (o OptionModifierFunc) Modify(option *RegisterControllerOption) {
 	o(option)
 }
 
+type defaultControllerRegistrar struct {
+	RegisterControllerOption
+}
+
+// NewDefaultControllerRegistrar returns default implementation of Registrar.
+// Every option will be applied to corresponding controller registration
+func NewDefaultControllerRegistrar(options ...OptionModifier) Registrar {
+	r := &defaultControllerRegistrar{}
+	for _, option := range options {
+		option.Modify(&r.RegisterControllerOption)
+	}
+	return r
+}
+
+func (d *defaultControllerRegistrar) RegisterController(mux any, c Controller) error {
+	mapper := d.Mapper
+	decorators := d.Decorators
+	routeRegistrar := d.RouteRegistrar
+	routes := c.Routes()
+	for _, route := range routes {
+
+		handler, err := mapper.MapHandler(route.Handler)
+		if err != nil {
+			return err
+		}
+		if decorators != nil && len(decorators) > 0 {
+			handler = decorate(handler, decorators)
+		}
+		if route.HandlerRegistrar != nil {
+			routeRegistrar = route.HandlerRegistrar
+		}
+		err = routeRegistrar.RegisterHandler(mux, handler, &route)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func MustRegisterController(mux any, c Controller, options ...OptionModifier) {
 	err := RegisterController(mux, c, options...)
 	if err != nil {
@@ -102,35 +146,7 @@ func MustRegisterController(mux any, c Controller, options ...OptionModifier) {
 }
 
 func RegisterController(mux any, c Controller, options ...OptionModifier) error {
-	option := &RegisterControllerOption{}
-	for _, modifier := range options {
-		modifier.Modify(option)
-	}
-	if option.Mapper == nil {
-		option.Mapper = HandlerMapperFunc(mapHandler)
-	}
-	if option.Registrar == nil {
-		option.Registrar = HandlerRegistrarFunc(registerHttpMux)
-	}
-	return registerController(mux, option.Mapper, option.Registrar, option.Decorators, c)
-}
-
-func registerController(mux any, mapper HandlerMapper, routeRegistrar HandlerRegistrar, decorators []HandlerDecorator, c Controller) error {
-	routes := c.Routes()
-	for _, route := range routes {
-		handler, err := mapper.MapHandler(route.Handler)
-		if err != nil {
-			return err
-		}
-		if decorators != nil && len(decorators) > 0 {
-			handler = decorate(handler, decorators)
-		}
-		err = routeRegistrar.RegisterHandler(mux, handler, &route)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return NewDefaultControllerRegistrar(options...).RegisterController(mux, c)
 }
 
 func decorate(handler http.Handler, decorators []HandlerDecorator) http.Handler {
