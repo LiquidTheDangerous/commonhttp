@@ -93,7 +93,7 @@ func WithHandlerDecoratorFunc(decorator HandlerDecoratorFunc) OptionModifier {
 func WithMiddlewares(m ...middleware.Middleware) OptionModifier {
 	return OptionModifierFunc(func(option *RegisterControllerOption) {
 		decorator := HandlerDecoratorFunc(func(handler http.Handler) http.Handler {
-			return middleware.Apply(handler)
+			return middleware.Apply(handler, m...)
 		})
 		option.Decorators = append(option.Decorators, decorator)
 	})
@@ -117,6 +117,7 @@ type defaultControllerRegistrar struct {
 // Every option will be applied to corresponding controller registration
 func NewDefaultControllerRegistrar(options ...OptionModifier) Registrar {
 	r := &defaultControllerRegistrar{}
+	r.Decorators = make([]HandlerDecorator, 0)
 	for _, option := range options {
 		option.Modify(&r.RegisterControllerOption)
 	}
@@ -166,7 +167,7 @@ func RegisterController(mux any, c Controller, options ...OptionModifier) error 
 }
 
 func decorate(handler http.Handler, decorators []HandlerDecorator) http.Handler {
-	for i := len(decorators); i >= 0; i-- {
+	for i := len(decorators) - 1; i >= 0; i-- {
 		handler = decorators[i].Decorate(handler)
 	}
 	return handler
