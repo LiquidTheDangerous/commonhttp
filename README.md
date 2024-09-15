@@ -3,6 +3,12 @@
 This project provides functionality to register controllers for http.ServeMux or any other compatible multiplexers.
 It simplifies the process of organizing and managing HTTP handlers in your Go web applications.
 
+## Installation
+
+```bash
+go get github.com/LiquidTheDangerous/commonhttp
+```
+
 ## Usage
 
 Here’s a simple example of how to register controllers:
